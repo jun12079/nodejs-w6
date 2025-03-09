@@ -14,10 +14,7 @@ router.get('/', async (req, res, next) => {
         page = Number(page)
 
         if (!isNumber(per) || !isNumber(page) || per <= 0 || page <= 0) {
-            return res.status(400).json({
-                status: "failed",
-                message: "欄位未填寫正確",
-            })
+            return next(appError(400, "欄位未填寫正確"));
         }
         const coaches = await dataSource.getRepository("Coach").find({
             relations: ["User"],
@@ -52,11 +49,7 @@ router.get('/:coachId', async (req, res, next) => {
         const { coachId } = req.params
 
         if (!isValidString(coachId)) {
-            res.status(400).json({
-                status: "failed",
-                message: "欄位未填寫正確",
-            })
-            return
+            return next(appError(400, "欄位未填寫正確"));
         }
 
         const coach = await dataSource.getRepository("Coach").findOne({
@@ -67,10 +60,7 @@ router.get('/:coachId', async (req, res, next) => {
         })
 
         if (!coach) {
-            return res.status(400).json({
-                status: "failed",
-                message: "找不到該教練",
-            })
+            return next(appError(400, "找不到該教練"));
         }
 
         const result = {

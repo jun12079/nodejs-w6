@@ -5,8 +5,11 @@ const { dataSource } = require('../db/data-source')
 const logger = require('../utils/logger')('Admin')
 
 const { isValidString, isNumber, isValidImageUrl } = require('../utils/validUtils')
+const appError = require('../utils/appError')
+const isAuth = require('../middlewares/isAuth')
+const isCoach = require('../middlewares/isCoach')
 
-router.post('/coaches/courses', async (req, res, next) => {
+router.post('/coaches/courses', isAuth, isCoach, async (req, res, next) => {
     try {
         // TODO 可以做檢查日期格式
         // 可以用 moment
@@ -14,11 +17,7 @@ router.post('/coaches/courses', async (req, res, next) => {
         if (!isValidString(user_id) || !isValidString(skill_id) || !isValidString(name)
             || !isValidString(description) || !isValidString(start_at) || !isValidString(end_at)
             || !isNumber(max_participants) || !isValidString(meeting_url) || !meeting_url.startsWith('https')) {
-            res.status(400).json({
-                status: "failed",
-                message: "欄位未填寫正確"
-            })
-            return
+            return next(appError(400, "欄位未填寫正確"));
         }
 
         const userRepo = dataSource.getRepository("User")
@@ -28,17 +27,9 @@ router.post('/coaches/courses', async (req, res, next) => {
             }
         })
         if (!findUser) {
-            res.status(400).json({
-                status: "failed",
-                message: "使用者不存在"
-            })
-            return
+            return next(appError(400, "使用者不存在"));
         } else if (findUser.role !== 'COACH') {
-            res.status(400).json({
-                status: "failed",
-                message: "使用者尚未成為教練"
-            })
-            return
+            return next(appError(400, "使用者尚未成為教練"));
         }
 
         const courseRepo = dataSource.getRepository("Course")
@@ -66,7 +57,7 @@ router.post('/coaches/courses', async (req, res, next) => {
     }
 })
 
-router.put('/coaches/courses/:courseId', async (req, res, next) => {
+router.put('/coaches/courses/:courseId', isAuth, isCoach, async (req, res, next) => {
     try {
         const { courseId } = req.params
         // TODO 可以做檢查日期格式
@@ -76,11 +67,7 @@ router.put('/coaches/courses/:courseId', async (req, res, next) => {
             || !isValidString(skill_id) || !isValidString(name)
             || !isValidString(description) || !isValidString(start_at) || !isValidString(end_at)
             || !isNumber(max_participants) || !isValidString(meeting_url) || !meeting_url.startsWith('https')) {
-            res.status(400).json({
-                status: "failed",
-                message: "欄位未填寫正確"
-            })
-            return
+            return next(appError(400, "欄位未填寫正確"));
         }
 
         const courseRepo = dataSource.getRepository("Course")
@@ -90,11 +77,7 @@ router.put('/coaches/courses/:courseId', async (req, res, next) => {
             }
         })
         if (!findCourse) {
-            res.status(400).json({
-                status: "failed",
-                message: "課程不存在"
-            })
-            return
+            return next(appError(400, "課程不存在"));
         }
 
         const updateCourse = await courseRepo.update({
@@ -109,11 +92,7 @@ router.put('/coaches/courses/:courseId', async (req, res, next) => {
             meeting_url
         })
         if (updateCourse.affected === 0) {
-            res.status(400).json({
-                status: "failed",
-                message: "更新課程失敗"
-            })
-            return
+            return next(appError(400, "更新課程失敗"));
         }
 
         const courseResult = await courseRepo.findOne({
@@ -140,18 +119,10 @@ router.post('/coaches/:userId', async (req, res, next) => {
         const { experience_years, description, profile_image_url } = req.body
 
         if (!isValidString(userId) || !isNumber(experience_years) || !isValidString(description)) {
-            res.status(400).json({
-                status: "failed",
-                message: "欄位未填寫正確",
-            })
-            return
+            return next(appError(400, "欄位未填寫正確"));
         }
         if (profile_image_url && isValidString(profile_image_url) && (!profile_image_url.startsWith('https') || !isValidImageUrl(profile_image_url))) {
-            res.status(400).json({
-                status: "failed",
-                message: "欄位未填寫正確",
-            })
-            return
+            return next(appError(400, "欄位未填寫正確"));
         }
 
         const userRepo = dataSource.getRepository("User")
@@ -161,17 +132,9 @@ router.post('/coaches/:userId', async (req, res, next) => {
             }
         })
         if (!findUser) {
-            res.status(404).json({
-                status: "failed",
-                message: "使用者不存在"
-            })
-            return
+            return next(appError(404, "使用者不存在"));
         } else if (findUser.role === 'COACH') {
-            res.status(409).json({
-                status: "failed",
-                message: "使用者已經是教練"
-            })
-            return
+            return next(appError(409, "使用者已經是教練"));
         }
 
         const updateUser = await userRepo.update({
@@ -180,11 +143,7 @@ router.post('/coaches/:userId', async (req, res, next) => {
             role: 'COACH'
         })
         if (updateUser.affected === 0) {
-            res.status(400).json({
-                status: "failed",
-                message: "更新使用者失敗"
-            })
-            return
+            return next(appError(400, "更新使用者失敗"));
         }
 
         const coachRepo = dataSource.getRepository("Coach")
